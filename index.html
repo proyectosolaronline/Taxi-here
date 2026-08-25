@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome Taxi Here - LED Bar</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0a0a;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        #led-bar {
+            width: 100%;
+            height: 120px;
+            background: #000;
+            border-top: 3px solid #333;
+            border-bottom: 3px solid #333;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 0 30px rgba(255,255,255,0.05);
+        }
+
+        #led-text {
+            white-space: nowrap;
+            font-size: 80px;
+            font-weight: bold;
+            letter-spacing: 5px;
+            color: #ffcc00;
+            text-shadow: 
+                0 0 10px #ffcc00,
+                0 0 20px #ffaa00,
+                0 0 40px #ff8800,
+                0 0 80px #ff5500;
+            animation: scrollLED 6s linear infinite;
+            padding-right: 50px;
+        }
+
+        @keyframes scrollLED {
+            0%   { transform: translateX(100vw); }
+            100% { transform: translateX(-100%); }
+        }
+
+        /* Efecto de "puntos LED" opcional */
+        #led-bar::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                to right,
+                transparent 0px,
+                transparent 8px,
+                rgba(0,0,0,0.4) 8px,
+                rgba(0,0,0,0.4) 10px
+            );
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="led-bar">
+        <span id="led-text">WELCOME TAXI HERE</span>
+    </div>
+
+    <script>
+        // Opcional: hacer que la barra ocupe toda la pantalla y se vea siempre horizontal
+        // (si el usuario gira el móvil, se ajusta)
+        window.addEventListener('resize', () => {
+            // Simplemente se queda igual, pero podemos forzar orientación landscape
+            if (screen.orientation) {
+                screen.orientation.lock('landscape').catch(() => {});
+            }
+        });
+
+        // Inicia pantalla completa al hacer clic (por si quieres kiosco)
+        document.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            }
+        });
+    </script>
+</body>
+</html>
