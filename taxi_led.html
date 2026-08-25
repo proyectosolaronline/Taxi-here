@@ -341,6 +341,46 @@
   applyFillColor();
   runCycle();
 </script>
+<a id="promo-btn" href="https://proyectosolaronline.github.io/NegociosHtml/tu-negocio-online.html" target="_blank" rel="noopener">Tu Negocio</a>
 
+<style>
+  #promo-btn {
+    position: fixed;
+    bottom: 12px;
+    left: 12px;
+    padding: 10px 16px;
+    border-radius: 20px;
+    background: #222;
+    color: #ffee00;
+    font-size: 12px;
+    font-weight: bold;
+    font-family: Arial, sans-serif;
+    text-decoration: none;
+    z-index: 999;
+    opacity: 0.6;
+    border: 2px solid #ffee00;
+    transition: color 0.3s, border-color 0.3s;
+  }
+</style>
+
+<script>
+  // Sincroniza el color del boton con el color actual del mensaje TAXI
+  (function() {
+    const promoBtn = document.getElementById('promo-btn');
+    const ledText = document.getElementById('led-text');
+
+    function syncColor() {
+      const currentColor = getComputedStyle(ledText).color;
+      promoBtn.style.color = currentColor;
+      promoBtn.style.borderColor = currentColor;
+    }
+
+    // Revisa cambios de color cada cierto tiempo (cubre scroll, parpadeo, boton de color)
+    setInterval(syncColor, 300);
+    syncColor();
+  })();
+</script>
+
+  
 </body>
 </html>
