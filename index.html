@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Editor de Mensajes - BARRA LED</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    min-height: 100%;
+    background: #0a0a0a;
+    font-family: Arial, sans-serif;
+  }
+
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    box-sizing: border-box;
+  }
+
+  #card {
+    width: 100%;
+    max-width: 480px;
+    background: #161616;
+    border-radius: 16px;
+    padding: 28px 22px;
+    box-sizing: border-box;
+    box-shadow: 0 0 30px rgba(255, 238, 0, 0.08);
+  }
+
+  h1 {
+    color: #ffee00;
+    font-size: 20px;
+    margin: 0 0 6px 0;
+    text-align: center;
+  }
+
+  p.subtitle {
+    color: #999;
+    font-size: 13px;
+    text-align: center;
+    margin: 0 0 24px 0;
+  }
+
+  label {
+    color: #ccc;
+    font-size: 13px;
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  textarea {
+    width: 100%;
+    box-sizing: border-box;
+    background: #000;
+    border: 2px solid #333;
+    border-radius: 10px;
+    color: #ffee00;
+    font-size: 18px;
+    font-weight: 900;
+    text-align: center;
+    padding: 14px 10px;
+    letter-spacing: 0.05em;
+    outline: none;
+    resize: vertical;
+    min-height: 80px;
+    font-family: Arial, sans-serif;
+  }
+
+  textarea:focus {
+    border-color: #ffee00;
+  }
+
+  .hint {
+    color: #666;
+    font-size: 11px;
+    margin-top: 6px;
+    text-align: center;
+  }
+
+  #preview-box {
+    margin-top: 20px;
+    background: #000;
+    border-radius: 10px;
+    padding: 18px 10px;
+    text-align: center;
+    overflow: hidden;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #preview-text {
+    color: #ffee00;
+    font-family: 'Arial Black', Arial, sans-serif;
+    font-weight: 900;
+    font-size: 24px;
+    text-shadow:
+      -2px -2px 0 #0033ff, 2px -2px 0 #0033ff,
+      -2px  2px 0 #0033ff, 2px  2px 0 #0033ff;
+    white-space: nowrap;
+    animation: scroll-preview 6s linear infinite;
+  }
+
+  @keyframes scroll-preview {
+    0% { transform: translateX(100%); }
+    100% { transform: translateX(-100%); }
+  }
+
+  .presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .preset-btn {
+    flex: 1 1 30%;
+    background: #222;
+    border: 1px solid #333;
+    color: #ffee00;
+    padding: 8px 6px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  .preset-btn:active {
+    background: #333;
+  }
+
+  .action-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 22px;
+  }
+
+  #launch-btn {
+    flex: 2;
+    padding: 16px;
+    border: none;
+    border-radius: 12px;
+    background: #ffee00;
+    color: #000;
+    font-size: 15px;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+  }
+
+  #launch-btn:active {
+    background: #e6d600;
+  }
+
+  #qr-btn {
+    flex: 1;
+    padding: 16px 10px;
+    border: none;
+    border-radius: 12px;
+    background: #222;
+    border: 1px solid #444;
+    color: #ffee00;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  #qr-btn:active {
+    background: #333;
+  }
+
+  #qr-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.9);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    padding: 20px;
+    box-sizing: border-box;
+  }
+
+  #qr-overlay.show {
+    display: flex;
+  }
+
+  #qr-overlay img {
+    background: #fff;
+    padding: 16px;
+    border-radius: 12px;
+    width: 240px;
+    height: 240px;
+  }
+
+  #qr-overlay p {
+    color: #fff;
+    font-family: Arial, sans-serif;
+    margin-top: 16px;
+    font-size: 14px;
+    text-align: center;
+  }
+
+  #qr-url {
+    color: #ffee00;
+    font-size: 11px;
+    word-break: break-all;
+    margin-top: 6px;
+    text-align: center;
+    max-width: 300px;
+  }
+
+  #qr-close {
+    margin-top: 20px;
+    padding: 10px 24px;
+    border-radius: 20px;
+    border: none;
+    background: #ffee00;
+    color: #000;
+    font-weight: bold;
+    font-family: Arial, sans-serif;
+    cursor: pointer;
+  }
+
+  .message-count {
+    color: #666;
+    font-size: 11px;
+    text-align: center;
+    margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+
+<div id="card">
+  <h1>Editor de Mensajes</h1>
+  <p class="subtitle">Escribe los mensajes para la barra LED<br>(uno por línea)</p>
+
+  <label for="msg-input">Mensajes</label>
+  <textarea id="msg-input" maxlength="100" placeholder="Bienvenidos">Bienvenidos</textarea>
+  <div class="hint">Escribe un mensaje por línea. Máximo 18 caracteres por mensaje</div>
+  <div class="message-count" id="msg-count">1 mensaje</div>
+
+  <div class="presets">
+    <button class="preset-btn" data-msg="TAXI">TAXI</button>
+    <button class="preset-btn" data-msg="ABIERTO">ABIERTO</button>
+    <button class="preset-btn" data-msg="Promociones|Ofertas|Gracias">NEGOCIO</button>
+    <button class="preset-btn" data-msg="Farmacia|24 Horas|Turno">FARMACIA</button>
+    <button class="preset-btn" data-msg="Pizzeria|Delivery|Promo 2x1">PIZZERIA</button>
+    <button class="preset-btn" data-msg="Bienvenidos|Pasele|Gracias">TIENDA</button>
+  </div>
+
+  <div id="preview-box">
+    <div id="preview-text">Bienvenidos</div>
+  </div>
+
+  <div class="action-row">
+    <button id="launch-btn">LANZAR BARRA LED</button>
+    <button id="qr-btn">QR</button>
+  </div>
+</div>
+
+<div id="qr-overlay">
+  <img id="qr-img" src="" alt="QR">
+  <p>Escanea para abrir la barra LED con estos mensajes</p>
+  <div id="qr-url"></div>
+  <button id="qr-close">Cerrar</button>
+</div>
+
+<script>
+  const input = document.getElementById('msg-input');
+  const preview = document.getElementById('preview-text');
+  const launchBtn = document.getElementById('launch-btn');
+  const qrBtn = document.getElementById('qr-btn');
+  const qrOverlay = document.getElementById('qr-overlay');
+  const qrImg = document.getElementById('qr-img');
+  const qrUrlLabel = document.getElementById('qr-url');
+  const qrClose = document.getElementById('qr-close');
+  const msgCount = document.getElementById('msg-count');
+
+  function getMessages() {
+    // Solo eliminamos espacios extra al inicio/final de cada línea
+    // Respetamos mayúsculas y minúsculas tal como se escriben
+    return input.value
+      .split('\n')
+      .map(m => m.trim())
+      .filter(m => m.length > 0);
+  }
+
+  function updatePreview() {
+    const messages = getMessages();
+    const firstMsg = messages.length > 0 ? messages[0] : 'Bienvenidos';
+    preview.textContent = firstMsg;
+    
+    // Actualizar contador
+    const count = messages.length;
+    msgCount.textContent = count + (count === 1 ? ' mensaje' : ' mensajes');
+  }
+
+  function getBarraUrl() {
+    const messages = getMessages();
+    const msgParam = messages.length > 0 ? messages.join('|') : 'Bienvenidos';
+    // Usamos index.html en lugar de taxi_led.html
+    return new URL('index.html?msg=' + encodeURIComponent(msgParam), window.location.href).href;
+  }
+
+  input.addEventListener('input', updatePreview);
+
+  document.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      // Convertir | a saltos de línea para el textarea
+      input.value = btn.dataset.msg.replace(/\|/g, '\n');
+      updatePreview();
+    });
+  });
+
+  launchBtn.addEventListener('click', () => {
+    window.location.href = getBarraUrl();
+  });
+
+  qrBtn.addEventListener('click', () => {
+    const barraUrl = getBarraUrl();
+    qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=' + encodeURIComponent(barraUrl);
+    qrUrlLabel.textContent = barraUrl;
+    qrOverlay.classList.add('show');
+  });
+
+  qrClose.addEventListener('click', () => {
+    qrOverlay.classList.remove('show');
+  });
+
+  // Cerrar QR con click fuera
+  qrOverlay.addEventListener('click', (e) => {
+    if (e.target === qrOverlay) {
+      qrOverlay.classList.remove('show');
+    }
+  });
+
+  updatePreview();
+</script>
+
+</body>
+</html>
