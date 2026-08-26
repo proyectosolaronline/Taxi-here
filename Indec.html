@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BARRA LED - Múltiples Mensajes</title>
+    
+    <!-- Meta tags -->
+    <meta name="description" content="Barra LED virtual para negocios - Muestra múltiples mensajes con animaciones">
+    <meta name="keywords" content="barra, led, letrero, negocios, mensajes, publicidad, actividades">
+    <meta name="theme-color" content="#000000">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    overflow: hidden;
+  }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #rotator {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+  }
+
+  @media (orientation: portrait) {
+    #rotator {
+      width: 100vh;
+      height: 100vw;
+      transform: rotate(90deg);
+      transform-origin: center center;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      margin-top: -50vw;
+      margin-left: -50vh;
+    }
+  }
+
+  #led-screen {
+    width: 100%;
+    height: 100%;
+    background: #000;
+    position: relative;
+    overflow: hidden;
+  }
+
+  #led-text {
+    font-family: 'Arial Black', Arial, sans-serif;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    color: #ffee00; /* valor inicial, se sobreescribe por JS */
+  }
+
+  #edit-btn {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    padding: 8px 14px;
+    border-radius: 20px;
+    border: none;
+    background: #222;
+    color: #ffee00;
+    font-size: 12px;
+    font-weight: bold;
+    font-family: Arial, sans-serif;
+    z-index: 999;
+    opacity: 0.55;
+    text-decoration: none;
+  }
+
+  #controls {
+    position: fixed;
+    bottom: 12px;
+    right: 12px;
+    display: flex;
+    gap: 8px;
+    z-index: 999;
+    opacity: 0.55;
+  }
+
+  #controls button {
+    min-width: 42px;
+    height: 42px;
+    border-radius: 21px;
+    padding: 0 10px;
+    border: none;
+    background: #222;
+    color: #ffee00;
+    font-size: 16px;
+    font-weight: bold;
+    font-family: Arial, sans-serif;
+  }
+</style>
+</head>
+<body>
+
+<div id="rotator">
+  <div id="led-screen">
+    <div id="led-text">Taxi</div>
+  </div>
+</div>
+
+<a id="edit-btn" href="editor.html">EDITAR</a>
+
+<div id="controls">
+  <button id="btn-minus">-</button>
+  <button id="btn-plus">+</button>
+  <button id="btn-speed">1x</button>
+  <button id="btn-color">🎨</button>
+</div>
+
+<script>
+  const screenEl = document.getElementById('led-screen');
+  const textEl = document.getElementById('led-text');
+
+  const params = new URLSearchParams(window.location.search);
+  const msgParam = params.get('msg');
+  if (msgParam && msgParam.trim().length > 0) {
+    // Eliminado .toUpperCase() para respetar mayúsculas y minúsculas
+    textEl.textContent = msgParam;
+  }
+
+  let baseFontVh = 58.5;
+  const fillColors = [
+    { label: 'Amarillo', hex: '#ffee00' },
+    { label: 'Verde', hex: '#00ff44' },
+    { label: 'Naranja', hex: '#ff8800' },
+    { label: 'Morado', hex: '#b400ff' }
+  ];
+  let fillIndex = 0;
+  const speedSteps = [
+    { label: '0.5x', px: 450 },
+    { label: '1x', px: 900 },
+    { label: '1.5x', px: 1350 },
+    { label: '2x', px: 1800 }
+  ];
+  let speedIndex = 1; // arranca en 1x
+  const borderColors = ['#000000', '#0033ff', '#ffffff'];
+  let currentAnim = null;
+  let cycleToken = 0; // se incrementa cada vez que reiniciamos, para invalidar timers viejos
+
+  function randomBorderColor() {
+    return borderColors[Math.floor(Math.random() * borderColors.length)];
+  }
+
+  function applyFillColor() {
+    textEl.style.color = fillColors[fillIndex].hex;
+  }
+
+  function applyBorder() {
+    const c = randomBorderColor();
+    textEl.style.textShadow =
+      '-2px -2px 0 ' + c + ',' +
+      ' 2px -2px 0 ' + c + ',' +
+      '-2px  2px 0 ' + c + ',' +
+      ' 2px  2px 0 ' + c + ',' +
+      '-3px  0px 0 ' + c + ',' +
+      ' 3px  0px 0 ' + c + ',' +
+      ' 0px -3px 0 ' + c + ',' +
+      ' 0px  3px 0 ' + c;
+  }
+
+  function containerWidth() {
+    return screenEl.clientWidth;
+  }
+
+  // tamano de fuente para que el mensaje COMPLETO quepa en pantalla (usado en el modo centrado)
+  function fittedFontVh() {
+    textEl.style.left = '50%';
+    textEl.style.transform = 'translate(-50%, -50%) scale(1)';
+    textEl.style.opacity = '1';
+    textEl.style.fontSize = baseFontVh + 'vh';
+    const maxWidth = containerWidth() * 0.94;
+    const width = textEl.offsetWidth;
+    if (width > maxWidth) {
+      return baseFontVh * (maxWidth / width);
+    }
+    return baseFontVh;
+  }
+
+  function cancelCurrentAnim() {
+    if (currentAnim) {
+      currentAnim.cancel();
+      currentAnim = null;
+    }
+  }
+
+  function startScrollPass(myToken, onDone) {
+    applyBorder();
+    applyFillColor();
+    textEl.style.left = '0';
+    textEl.style.opacity = '1';
+    textEl.style.fontSize = baseFontVh + 'vh';
+
+    const cw = containerWidth();
+    const tw = textEl.offsetWidth;
+
+    const startX = cw;
+    const endX = -tw;
+
+    textEl.style.transform = 'translateY(-50%) translateX(' + startX + 'px)';
+
+    const distance = startX - endX;
+    const pxPerSecond = speedSteps[speedIndex].px;
+    const durationMs = Math.max((distance / pxPerSecond) * 1000, 500);
+
+    cancelCurrentAnim();
+    currentAnim = textEl.animate(
+      [
+        { transform: 'translateY(-50%) translateX(' + startX + 'px)' },
+        { transform: 'translateY(-50%) translateX(' + endX + 'px)' }
+      ],
+      { duration: durationMs, easing: 'linear', fill: 'forwards' }
+    );
+
+    currentAnim.onfinish = () => {
+      if (myToken !== cycleToken) return;
+      currentAnim = null;
+      if (onDone) onDone();
+    };
+  }
+
+  function runScrollCycle(myToken, times, onAllDone) {
+    let count = 0;
+    function next() {
+      if (myToken !== cycleToken) return;
+      count++;
+      if (count < times) {
+        startScrollPass(myToken, next);
+      } else {
+        onAllDone();
+      }
+    }
+    startScrollPass(myToken, next);
+  }
+
+  // Efecto: el mensaje aparece CRECIENDO desde el centro de la pantalla, luego parpadea 3 veces
+  function growThenBlink(myToken, onDone) {
+    const fVh = fittedFontVh();
+
+    textEl.style.left = '50%';
+    textEl.style.fontSize = fVh + 'vh';
+    textEl.style.opacity = '1';
+    applyBorder();
+    applyFillColor();
+
+    cancelCurrentAnim();
+    currentAnim = textEl.animate(
+      [
+        { transform: 'translate(-50%, -50%) scale(0)', opacity: 0 },
+        { transform: 'translate(-50%, -50%) scale(1.15)', opacity: 1, offset: 0.75 },
+        { transform: 'translate(-50%, -50%) scale(1)', opacity: 1 }
+      ],
+      { duration: 550, easing: 'ease-out', fill: 'forwards' }
+    );
+
+    currentAnim.onfinish = () => {
+      if (myToken !== cycleToken) return;
+      textEl.style.transform = 'translate(-50%, -50%) scale(1)';
+      currentAnim = null;
+      doBlink(myToken, onDone);
+    };
+  }
+
+  function doBlink(myToken, onDone) {
+    let visible = true;
+    let blinkCount = 0;
+    const maxBlinks = 3;
+
+    const blinkInterval = setInterval(() => {
+      if (myToken !== cycleToken) {
+        clearInterval(blinkInterval);
+        return;
+      }
+      visible = !visible;
+      textEl.style.opacity = visible ? '1' : '0';
+      if (visible) {
+        applyBorder();
+        blinkCount++;
+      }
+      if (blinkCount >= maxBlinks && visible) {
+        clearInterval(blinkInterval);
+        textEl.style.opacity = '1';
+        onDone();
+      }
+    }, 450);
+  }
+
+  function runCycle() {
+    const myToken = cycleToken;
+    runScrollCycle(myToken, 3, () => {
+      if (myToken !== cycleToken) return;
+      growThenBlink(myToken, () => {
+        if (myToken !== cycleToken) return;
+        runCycle();
+      });
+    });
+  }
+
+  function restartCycle() {
+    cycleToken++;
+    cancelCurrentAnim();
+    runCycle();
+  }
+
+  document.getElementById('btn-plus').addEventListener('click', () => {
+    baseFontVh = Math.min(baseFontVh + 5, 95);
+    restartCycle();
+  });
+
+  document.getElementById('btn-minus').addEventListener('click', () => {
+    baseFontVh = Math.max(baseFontVh - 5, 15);
+    restartCycle();
+  });
+
+  const btnSpeed = document.getElementById('btn-speed');
+  btnSpeed.addEventListener('click', () => {
+    speedIndex = (speedIndex + 1) % speedSteps.length;
+    btnSpeed.textContent = speedSteps[speedIndex].label;
+    restartCycle();
+  });
+
+  document.getElementById('btn-color').addEventListener('click', () => {
+    fillIndex = (fillIndex + 1) % fillColors.length;
+    applyFillColor();
+  });
+
+  let resizeTimeout = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(restartCycle, 150);
+  });
+
+  applyFillColor();
+  runCycle();
+</script>
+<a id="promo-btn" href="https://proyectosolaronline.github.io/NegociosHtml/tu-negocio-online.html" target="_blank" rel="noopener">Tu Negocio</a>
+
+<style>
+  #promo-btn {
+    position: fixed;
+    bottom: 12px;
+    left: 12px;
+    padding: 10px 16px;
+    border-radius: 20px;
+    background: #222;
+    color: #ffee00;
+    font-size: 12px;
+    font-weight: bold;
+    font-family: Arial, sans-serif;
+    text-decoration: none;
+    z-index: 999;
+    opacity: 0.6;
+    border: 2px solid #ffee00;
+    transition: color 0.3s, border-color 0.3s;
+  }
+</style>
+
+<script>
+  // Sincroniza el color del boton con el color actual del mensaje
+  (function() {
+    const promoBtn = document.getElementById('promo-btn');
+    const ledText = document.getElementById('led-text');
+
+    function syncColor() {
+      const currentColor = getComputedStyle(ledText).color;
+      promoBtn.style.color = currentColor;
+      promoBtn.style.borderColor = currentColor;
+    }
+
+    // Revisa cambios de color cada cierto tiempo (cubre scroll, parpadeo, boton de color)
+    setInterval(syncColor, 300);
+    syncColor();
+  })();
+</script>
+
+  
+</body>
+</html>
