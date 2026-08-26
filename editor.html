@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>TAXI LED - Barra de Mensajes</title>
+
+<!-- Meta tags -->
+<meta name="description" content="Barra LED virtual para taxi y negocios - Muestra múltiples mensajes con animaciones">
+<meta name="keywords" content="taxi, led, barra, letrero, mensajes, publicidad, negocios, actividades">
+<meta name="theme-color" content="#000000">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    background: #000;
+    overflow: hidden;
+  }
+
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #rotator {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+  }
+
+  @media (orientation: portrait) {
+    #rotator {
+      width: 100vh;
+      height: 100vw;
+      transform: rotate(90deg);
+      transform-origin: center center;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      margin-top: -50vw;
+      margin-left: -50vh;
+    }
+  }
+
+  #led-screen {
+    width: 100%;
+    height: 100%;
+    background: #000;
+    position: relative;
+    overflow: hidden;
+  }
+
+  #led-text {
+    font-family: 'Arial Black', Arial, sans-serif;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    color: #ffee00;
+  }
+
+  #edit-btn {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    padding: 8px 14px;
+    border-radius: 20px;
+    border: none;
+    background: #222;
+    color: #ffee00;
+    font-size: 12px;
+    font-weight: bold;
+    font-family: Arial, sans-serif;
+    z-index: 999;
+    opacity: 0.55;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  #message-indicator {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    padding: 8px 14px;
+    border-radius: 20px;
+    background: #222;
+    color: #fff;
+    font-size: 12px;
+    font-family: Arial, sans-serif;
+    z-index: 999;
+    opacity: 0.7;
+  }
+
+  #controls {
+    position: fixed;
+    bottom: 12px;
+    right: 12px;
+    display: flex;
+    gap: 8px;
+    z-index: 999;
+    opacity: 0.55;
+  }
+
+  #controls button {
+    min-width: 42px;
+    height: 42px;
+    border-radius: 21px;
+    padding: 0 10px;
+    border: none;
+    background: #222;
+    color: #ffee00;
+    font-size: 16px;
+    font-weight: bold;
+    font-family: Arial, sans-serif;
+    cursor: pointer;
+  }
+
+  #controls button:active {
+    background: #333;
+  }
+
+  #promo-btn {
+    position: fixed;
+    bottom: 12px;
+    left: 12px;
+    padding: 10px 16px;
+    border-radius: 20px;
+    background: #222;
+    color: #ffee00;
+    font-size: 12px;
+    font-weight: bold;
+    font-family: Arial, sans-serif;
+    text-decoration: none;
+    z-index: 999;
+    opacity: 0.6;
+    border: 2px solid #ffee00;
+    transition: color 0.3s, border-color 0.3s;
+  }
+</style>
+</head>
+<body>
+
+<div id="rotator">
+  <div id="led-screen">
+    <div id="led-text">BIENVENIDOS</div>
+  </div>
+</div>
+
+<a id="edit-btn" href="editor.html">EDITAR</a>
+<div id="message-indicator">1/1</div>
+
+<div id="controls">
+  <button id="btn-prev">◀</button>
+  <button id="btn-minus">-</button>
+  <button id="btn-plus">+</button>
+  <button id="btn-speed">1x</button>
+  <button id="btn-color">🎨</button>
+  <button id="btn-next">▶</button>
+</div>
+
+<a id="promo-btn" href="https://proyectosolaronline.github.io/NegociosHtml/tu-negocio-online.html" target="_blank" rel="noopener">Tu Negocio</a>
+
+<script>
+  const screenEl = document.getElementById('led-screen');
+  const textEl = document.getElementById('led-text');
+  const indicatorEl = document.getElementById('message-indicator');
+  const promoBtn = document.getElementById('promo-btn');
+
+  // MENSAJES PREDEFINIDOS
+  let messages = ['BIENVENIDOS'];
+  
+  // Cargar mensajes desde URL
+  const params = new URLSearchParams(window.location.search);
+  const msgParam = params.get('msg');
+  if (msgParam && msgParam.trim().length > 0) {
+    messages = msgParam.split('|')
+      .map(m => m.trim().toUpperCase())
+      .filter(m => m.length > 0);
+    if (messages.length === 0) messages = ['BIENVENIDOS'];
+  }
+
+  let currentMessageIndex = 0;
+  let baseFontVh = 58.5;
+  
+  // Colores disponibles
+  const fillColors = [
+    { label: 'Amarillo', hex: '#ffee00' },
+    { label: 'Verde', hex: '#00ff44' },
+    { label: 'Naranja', hex: '#ff8800' },
+    { label: 'Morado', hex: '#b400ff' },
+    { label: 'Rojo', hex: '#ff0000' },
+    { label: 'Azul', hex: '#0088ff' },
+    { label: 'Blanco', hex: '#ffffff' },
+    { label: 'Rosa', hex: '#ff00ff' }
+  ];
+  let fillIndex = 0;
+  
+  // Velocidades
+  const speedSteps = [
+    { label: '0.5x', px: 450 },
+    { label: '1x', px: 900 },
+    { label: '1.5x', px: 1350 },
+    { label: '2x', px: 1800 },
+    { label: '3x', px: 2700 }
+  ];
+  let speedIndex = 1;
+  
+  // Colores de borde
+  const borderColors = ['#000000', '#0033ff', '#ffffff', '#ff0000', '#00ff00'];
+  let currentAnim = null;
+  let cycleToken = 0;
+
+  function randomBorderColor() {
+    return borderColors[Math.floor(Math.random() * borderColors.length)];
+  }
+
+  function applyFillColor() {
+    textEl.style.color = fillColors[fillIndex].hex;
+  }
+
+  function applyBorder() {
+    const c = randomBorderColor();
+    textEl.style.textShadow =
+      '-2px -2px 0 ' + c + ',' +
+      ' 2px -2px 0 ' + c + ',' +
+      '-2px  2px 0 ' + c + ',' +
+      ' 2px  2px 0 ' + c + ',' +
+      '-3px  0px 0 ' + c + ',' +
+      ' 3px  0px 0 ' + c + ',' +
+      ' 0px -3px 0 ' + c + ',' +
+      ' 0px  3px 0 ' + c;
+  }
+
+  function containerWidth() {
+    return screenEl.clientWidth;
+  }
+
+  function updateIndicator() {
+    indicatorEl.textContent = (currentMessageIndex + 1) + '/' + messages.length;
+  }
+
+  function showMessage(index) {
+    currentMessageIndex = index;
+    textEl.textContent = messages[currentMessageIndex];
+    updateIndicator();
+    restartCycle();
+  }
+
+  function nextMessage() {
+    currentMessageIndex = (currentMessageIndex + 1) % messages.length;
+    showMessage(currentMessageIndex);
+  }
+
+  function prevMessage() {
+    currentMessageIndex = (currentMessageIndex - 1 + messages.length) % messages.length;
+    showMessage(currentMessageIndex);
+  }
+
+  // Tamaño de fuente para que el mensaje completo quepa
+  function fittedFontVh() {
+    textEl.style.left = '50%';
+    textEl.style.transform = 'translate(-50%, -50%) scale(1)';
+    textEl.style.opacity = '1';
+    textEl.style.fontSize = baseFontVh + 'vh';
+    const maxWidth = containerWidth() * 0.94;
+    const width = textEl.offsetWidth;
+    if (width > maxWidth) {
+      return baseFontVh * (maxWidth / width);
+    }
+    return baseFontVh;
+  }
+
+  function cancelCurrentAnim() {
+    if (currentAnim) {
+      currentAnim.cancel();
+      currentAnim = null;
+    }
+  }
+
+  function startScrollPass(myToken, onDone) {
+    applyBorder();
+    applyFillColor();
+    textEl.style.left = '0';
+    textEl.style.opacity = '1';
+    textEl.style.fontSize = baseFontVh + 'vh';
+
+    const cw = containerWidth();
+    const tw = textEl.offsetWidth;
+
+    const startX = cw;
+    const endX = -tw;
+
+    textEl.style.transform = 'translateY(-50%) translateX(' + startX + 'px)';
+
+    const distance = startX - endX;
+    const pxPerSecond = speedSteps[speedIndex].px;
+    const durationMs = Math.max((distance / pxPerSecond) * 1000, 500);
+
+    cancelCurrentAnim();
+    currentAnim = textEl.animate(
+      [
+        { transform: 'translateY(-50%) translateX(' + startX + 'px)' },
+        { transform: 'translateY(-50%) translateX(' + endX + 'px)' }
+      ],
+      { duration: durationMs, easing: 'linear', fill: 'forwards' }
+    );
+
+    currentAnim.onfinish = () => {
+      if (myToken !== cycleToken) return;
+      currentAnim = null;
+      if (onDone) onDone();
+    };
+  }
+
+  function runScrollCycle(myToken, times, onAllDone) {
+    let count = 0;
+    function next() {
+      if (myToken !== cycleToken) return;
+      count++;
+      if (count < times) {
+        startScrollPass(myToken, next);
+      } else {
+        onAllDone();
+      }
+    }
+    startScrollPass(myToken, next);
+  }
+
+  // Efecto: crecer y parpadear
+  function growThenBlink(myToken, onDone) {
+    const fVh = fittedFontVh();
+
+    textEl.style.left = '50%';
+    textEl.style.fontSize = fVh + 'vh';
+    textEl.style.opacity = '1';
+    applyBorder();
+    applyFillColor();
+
+    cancelCurrentAnim();
+    currentAnim = textEl.animate(
+      [
+        { transform: 'translate(-50%, -50%) scale(0)', opacity: 0 },
+        { transform: 'translate(-50%, -50%) scale(1.15)', opacity: 1, offset: 0.75 },
+        { transform: 'translate(-50%, -50%) scale(1)', opacity: 1 }
+      ],
+      { duration: 550, easing: 'ease-out', fill: 'forwards' }
+    );
+
+    currentAnim.onfinish = () => {
+      if (myToken !== cycleToken) return;
+      textEl.style.transform = 'translate(-50%, -50%) scale(1)';
+      currentAnim = null;
+      doBlink(myToken, onDone);
+    };
+  }
+
+  function doBlink(myToken, onDone) {
+    let visible = true;
+    let blinkCount = 0;
+    const maxBlinks = 3;
+
+    const blinkInterval = setInterval(() => {
+      if (myToken !== cycleToken) {
+        clearInterval(blinkInterval);
+        return;
+      }
+      visible = !visible;
+      textEl.style.opacity = visible ? '1' : '0';
+      if (visible) {
+        applyBorder();
+        blinkCount++;
+      }
+      if (blinkCount >= maxBlinks && visible) {
+        clearInterval(blinkInterval);
+        textEl.style.opacity = '1';
+        onDone();
+      }
+    }, 450);
+  }
+
+  function runCycle() {
+    const myToken = cycleToken;
+    runScrollCycle(myToken, 2, () => {
+      if (myToken !== cycleToken) return;
+      growThenBlink(myToken, () => {
+        if (myToken !== cycleToken) return;
+        // Pasar al siguiente mensaje después de completar el ciclo
+        setTimeout(() => {
+          if (myToken === cycleToken) {
+            nextMessage();
+          }
+        }, 2000);
+      });
+    });
+  }
+
+  function restartCycle() {
+    cycleToken++;
+    cancelCurrentAnim();
+    textEl.textContent = messages[currentMessageIndex];
+    updateIndicator();
+    runCycle();
+  }
+
+  // Sincronizar color del botón promo
+  function syncPromoColor() {
+    const currentColor = getComputedStyle(textEl).color;
+    promoBtn.style.color = currentColor;
+    promoBtn.style.borderColor = currentColor;
+  }
+
+  // Event Listeners
+  document.getElementById('btn-plus').addEventListener('click', () => {
+    baseFontVh = Math.min(baseFontVh + 5, 95);
+    restartCycle();
+  });
+
+  document.getElementById('btn-minus').addEventListener('click', () => {
+    baseFontVh = Math.max(baseFontVh - 5, 15);
+    restartCycle();
+  });
+
+  const btnSpeed = document.getElementById('btn-speed');
+  btnSpeed.addEventListener('click', () => {
+    speedIndex = (speedIndex + 1) % speedSteps.length;
+    btnSpeed.textContent = speedSteps[speedIndex].label;
+    restartCycle();
+  });
+
+  document.getElementById('btn-color').addEventListener('click', () => {
+    fillIndex = (fillIndex + 1) % fillColors.length;
+    applyFillColor();
+    syncPromoColor();
+  });
+
+  document.getElementById('btn-prev').addEventListener('click', prevMessage);
+  document.getElementById('btn-next').addEventListener('click', nextMessage);
+
+  // Manejar resize
+  let resizeTimeout = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(restartCycle, 150);
+  });
+
+  // Sincronizar color inicial
+  setInterval(syncPromoColor, 500);
+
+  // Iniciar
+  textEl.textContent = messages[0];
+  applyFillColor();
+  updateIndicator();
+  syncPromoColor();
+  runCycle();
+</script>
+
+</body>
+</html>
